@@ -1,128 +1,185 @@
 import streamlit as st
 
-st.set_page_config(
-    page_title="Alan Insurance AI Advisor",
-    page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# Config
+st.set_page_config(page_title="Alan Insurance Advisor", page_icon="🤖", layout="wide")
 
-# Custom CSS for beautiful dark theme
+# Dark professional theme
 st.markdown("""
-    <style>
+<style>
+    [data-testid="stSidebar"] {background-color: #1e293b;}
     .main {background-color: #0f172a;}
-    .stButton > button {border-radius: 12px; height: 60px; font-size: 16px; font-weight: bold;}
-    .stMetric {background-color: #1e293b; padding: 20px; border-radius: 12px;}
-    h1 {color: #60a5fa !important; font-size: 3rem !important;}
+    .stButton > button {
+        border-radius: 12px; height: 60px; font-size: 18px; font-weight: bold;
+        border: none; transition: all 0.3s;
+    }
+    .stButton > button:hover {transform: scale(1.05);}
+    h1 {color: #60a5fa !important; font-size: 3.2rem !important;}
     .stAppViewContainer {background-color: #0f172a;}
-    </style>
+    .stMetric {background-color: #1e293b; padding: 1rem; border-radius: 12px;}
+</style>
 """, unsafe_allow_html=True)
 
-st.title("🤖 Alan Insurance AI Advisor")
-st.markdown("**Get your perfect Bear or Marmot plan in 3 clicks** 🚀")
+# Initialize session state
+if 'step' not in st.session_state:
+    st.session_state.step = 0
+if 'selection' not in st.session_state:
+    st.session_state.selection = {}
 
-# Sidebar with instructions
+st.title("🤖 Alan Insurance Advisor")
+st.markdown("**Get personalized Bear or Marmot recommendations → 3 clicks**")
+
+# Progress indicator
+progress_steps = ["👋 Choose Type", "📋 Select Size", "🎯 Your Results"]
+current_step = min(st.session_state.step, 2)
+st.progress(current_step / 2)
+st.markdown(f"**Step {current_step + 1} of 3: {progress_steps[current_step]}**")
+
+# === STEP 1: Individual or Business ===
+if st.session_state.step == 0:
+    st.markdown("### **Who is this insurance for?**")
+    
+    col1, col2 = st.columns(2, gap="large")
+    
+    with col1:
+        if st.button("👤 **Individual**", use_container_width=True, type="primary",
+                    help="Personal health insurance"):
+            st.session_state.selection = {"type": "individual"}
+            st.session_state.step = 1
+            st.rerun()
+    
+    with col2:
+        if st.button("🏢 **Business**", use_container_width=True, type="secondary",
+                    help="Group health insurance for employees"):
+            st.session_state.selection = {"type": "business"}
+            st.session_state.step = 1
+            st.rerun()
+
+# === STEP 2: Employed/Unemployed OR Small/Big Business ===
+elif st.session_state.step == 1:
+    if st.session_state.selection["type"] == "individual":
+        st.markdown("### **Employment Status**")
+        st.info("💡 This helps us recommend the perfect coverage level")
+        
+        col1, col2 = st.columns(2, gap="large")
+        
+        with col1:
+            if st.button("✅ **Employed**", use_container_width=True, type="primary"):
+                st.session_state.selection.update({"status": "employed"})
+                st.session_state.step = 2
+                st.rerun()
+        
+        with col2:
+            if st.button("💼 **Unemployed/Self-Employed**", use_container_width=True):
+                st.session_state.selection.update({"status": "unemployed"})
+                st.session_state.step = 2
+                st.rerun()
+    
+    else:  # Business
+        st.markdown("### **Business Size**")
+        st.info("💡 Alan specializes in small to mid-size Canadian businesses")
+        
+        col1, col2 = st.columns(2, gap="large")
+        
+        with col1:
+            if st.button("🍼 **Small Business**\n(1-49 employees)", use_container_width=True, type="primary"):
+                st.session_state.selection.update({"size": "small", "employees": 25})
+                st.session_state.step = 2
+                st.rerun()
+        
+        with col2:
+            if st.button("🏢 **Big Business**\n(50+ employees)", use_container_width=True):
+                st.session_state.selection.update({"size": "big", "employees": 100})
+                st.session_state.step = 2
+                st.rerun()
+
+# === STEP 3: Results ===
+elif st.session_state.step == 2:
+    # Calculate recommendation
+    if st.session_state.selection["type"] == "individual":
+        plan = "Marmot" if st.session_state.selection["status"] == "employed" else "Bear"
+        subtitle = f"**{st.session_state.selection['status'].title()} Individual**"
+    else:
+        plan = "Bear" if st.session_state.selection["size"] == "small" else "Marmot"
+        subtitle = f"**{st.session_state.selection['size'].title()} Business** ({st.session_state.selection['employees']} employees)"
+    
+    # Results layout
+    st.markdown("### **🎯 Your Perfect Match**")
+    
+    col_main, col_action = st.columns([3, 1], gap="large")
+    
+    with col_main:
+        st.metric("🏆 **Recommended Plan**", f"**Alan {plan}** 🎖️")
+        st.metric("📋 **Your Profile**", subtitle)
+        
+        if st.session_state.selection["type"] == "individual":
+            if plan == "Marmot":
+                st.success("""
+                **✅ Marmot Plan Features:**
+                • Prescription drugs + paramedical (physio, massage, chiro)
+                • Dental (checkups + major procedures)
+                • Vision coverage + glasses
+                • **Semi-private hospital rooms**
+                **Perfect for employed individuals with families**
+                """)
+            else:
+                st.info("""
+                **✅ Bear Plan Features:**
+                • Prescription drugs
+                • Paramedical services (physio, massage)
+                • Dental checkups + cleanings
+                • Vision coverage
+                **Perfect for self-employed / basic needs**
+                """)
+        else:
+            st.success(f"""
+            **✅ {plan} Group Plan Benefits:**
+            • **20% cheaper** than traditional brokers
+            • Rx, dental, paramedical for ALL employees  
+            • Instant online enrollment (no paperwork!)
+            • **Perfect for Canadian {'startups' if plan == 'Bear' else 'growing companies'}**
+            """)
+    
+    with col_action:
+        if st.button("📞 **Book Demo Call**", use_container_width=True, type="primary"):
+            st.balloons()
+            st.success("✅ Demo booked! Alan sales team will contact you within 24 hours.")
+    
+    # Action buttons
+    col_reset, col_back = st.columns(2)
+    with col_reset:
+        if st.button("🔄 **New Recommendation**", use_container_width=True, type="secondary"):
+            for key in st.session_state.keys():
+                del st.session_state[key]
+            st.rerun()
+    with col_back:
+        if st.button("⬅️ **Change Answers**", use_container_width=True):
+            st.session_state.step = 0
+            st.rerun()
+
+# Sidebar - Product guide
 with st.sidebar:
-    st.markdown("## 📋 Quick Guide")
-    st.markdown("""
-    **Individual:**
-    • Employed → Marmot (comprehensive)
-    • Self-employed → Bear (basic)
+    st.markdown("## 📖 **Alan Product Guide**")
     
-    **Business:**
-    • 1-49 employees → Bear Group
-    • 50-500 → Marmot Group (20% cheaper!)
-    """)
-    st.markdown("---")
-    st.markdown("*Built by Malav Shah | Alan Internship Q3*")
-
-# Main content
-col1, col2 = st.columns([1, 1])
-
-with col1:
-    st.subheader("👤 **Individual**")
-    if st.button("Employed - Full Coverage", use_container_width=True, type="primary"):
-        st.session_state.plan = "Marmot"
-        st.session_state.type = "individual"
-        st.session_state.status = "employed"
-        st.rerun()
-    
-    if st.button("Self-Employed - Basic", use_container_width=True):
-        st.session_state.plan = "Bear"
-        st.session_state.type = "individual" 
-        st.session_state.status = "self-employed"
-        st.rerun()
-
-with col2:
-    st.subheader("🏢 **Business**")
-    employees = st.number_input("Employees (1-500):", 1, 500, 25, help="Enter your company size")
-    
-    col1b, col2b = st.columns(2)
-    with col1b:
-        if st.button("Get Group Plan", use_container_width=True):
-            st.session_state.plan = "Bear" if employees <= 49 else "Marmot"
-            st.session_state.type = "business"
-            st.session_state.employees = employees
-            st.rerun()
-    
-    with col2b:
-        if st.button("Custom Quote", use_container_width=True, type="secondary"):
-            st.session_state.show_custom = True
-            st.rerun()
-
-# Results section
-if 'plan' in st.session_state:
-    st.markdown("---")
-    
-    if st.session_state.type == "individual":
-        with st.container():
-            colr1, colr2 = st.columns([2, 1])
-            with colr1:
-                st.markdown(f"## 🎯 **Recommended: Alan {st.session_state.plan} Plan**")
-                st.markdown(f"**Status:** {st.session_state.status.title()}")
-                
-                if st.session_state.plan == "Marmot":
-                    st.success("""
-                    ### ✅ **Comprehensive Coverage**
-                    - Prescription drugs + paramedical (physio, massage)
-                    - Dental (checkups, major procedures)
-                    - Vision + prescription glasses  
-                    - **Semi-private hospital rooms**
-                    """)
-                else:
-                    st.success("""
-                    ### ✅ **Essential Coverage**
-                    - Prescription drugs
-                    - Paramedical services
-                    - Dental (checkups, cleanings)
-                    - **Vision coverage**
-                    """)
-            
-            with colr2:
-                st.button("📅 Book Demo", use_container_width=True, type="primary")
-                st.button("🔄 New Recommendation", on_click=lambda: st.cache_data.clear(), use_container_width=True)
-    
-    else:  # business
-        st.markdown(f"## 🎯 **Recommended: Alan {st.session_state.plan} Group Plan**")
-        st.markdown(f"**{st.session_state.employees} employees**")
-        
-        st.success(f"""
-        ### 💰 **Group Benefits** 
-        - **20% cheaper** than traditional brokers
-        - Rx, dental, paramedical for all employees
-        - Instant online enrollment (no paperwork!)
-        - Perfect for Canadian tech startups & SMBs
+    with st.expander("🐻 **Bear Plan** (Basic)"):
+        st.markdown("""
+        • Prescription drugs  
+        • Paramedical (physio, massage)
+        • Dental checkups
+        • Vision coverage
+        **Best for:** Self-employed, small business
         """)
-        
-        colb1, colb2 = st.columns(2)
-        with colb1:
-            st.button("📅 Group Demo", use_container_width=True, type="primary")
-        with colb2:
-            st.button("🔄 New Quote", on_click=lambda: st.cache_data.clear(), use_container_width=True)
+    
+    with st.expander("🦙 **Marmot Plan** (Premium)"):
+        st.markdown("""
+        • Everything in Bear + higher limits
+        • Semi-private hospital rooms  
+        • Enhanced dental coverage
+        **Best for:** Employed individuals, mid-size business
+        """)
+    
+    st.markdown("---")
+    st.markdown("*Built by **Malav Shah** | Alan Canada Internship Q3 2026*")
 
 # Footer
 st.markdown("---")
-st.markdown("*Pure Python/Streamlit • Production-ready • Built for Alan Canada Internship*")
-
-if __name__ == "__main__":
-    pass
+st.markdown("**💼 Production-ready lead qualification tool • Pure Python/Streamlit • Deployed instantly**")
